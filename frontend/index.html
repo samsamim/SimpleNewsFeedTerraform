@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Feed</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        #newsInput {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #newsfeed {
+            margin-top: 30px;
+        }
+
+        #newsfeed h2 {
+            color: #333;
+            border-bottom: 2px solid #007BFF;
+            padding-bottom: 10px;
+        }
+
+        .news-item {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .news-item p {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .news-item span {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>News Feed</h1>
+        <div>
+            <textarea id="newsInput" rows="4" placeholder="Write your news here..."></textarea><br>
+            <button onclick="postNews()">Submit</button>
+        </div>
+        <div id="newsfeed">
+            <h2>Recent News</h2>
+            <div id="newsList"></div>
+        </div>
+    </div>
+
+    <script>
+        const postNewsUrl = 'https://td6vjdk68f.execute-api.us-east-1.amazonaws.com/prod/postNews';
+        const getNewsUrl = 'https://td6vjdk68f.execute-api.us-east-1.amazonaws.com/prod/getNews';
+
+        async function postNews() {
+            const newsText = document.getElementById('newsInput').value;
+            if (newsText.trim() === '') {
+                alert('Please enter some news.');
+                return;
+            }
+
+            try {
+                const response = await fetch(postNewsUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ news: newsText })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to post news');
+                }
+
+                document.getElementById('newsInput').value = '';
+                fetchNews(); // Refresh the news feed
+            } catch (error) {
+                console.error('Error posting news:', error);
+            }
+        }
+
+        async function fetchNews() {
+            try {
+                const response = await fetch(getNewsUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch news');
+                }
+
+                const newsItems = await response.json();
+                const newsList = document.getElementById('newsList');
+                newsList.innerHTML = '';
+
+                newsItems.forEach(item => {
+                    const newsText = item.text.S;
+                    const newsTimestamp = item.timestamp.S;
+
+                    // Convert timestamp from nanoseconds to milliseconds
+                    const timestampMillis = parseInt(newsTimestamp) / 1e6;
+                    const formattedDate = new Date(timestampMillis).toLocaleString();
+
+                    const newsElement = document.createElement('div');
+                    newsElement.classList.add('news-item');
+
+                    newsElement.innerHTML = `
+                        <p>${newsText}</p>
+                        <span>Posted on: ${formattedDate}</span>
+                    `;
+
+                    newsList.appendChild(newsElement);
+                });
+            } catch (error) {
+                console.error('Error fetching news:', error);
+            }
+        }
+
+        window.onload = fetchNews;
+    </script>
+</body>
+
+</html>
